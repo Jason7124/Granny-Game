@@ -190,6 +190,7 @@ function startGame() {
         players: [],
         started: true,
         winner: null,
+        hostId: Date.now().toString(), // Track host/Granny
         soundSettings: {
             intervalMin: soundIntervalMin,
             intervalMax: soundIntervalMax,
@@ -199,17 +200,16 @@ function startGame() {
 
     saveGameState();
 
-    alert(`Game created! Share this code with players: ${gameCode}`);
+    // Mark this device as Granny
+    localStorage.setItem('grannyIsHost', 'true');
+    localStorage.setItem('grannyHostId', gameState.hostId);
+
+    alert(`Game created! Share this code with players: ${gameCode}\n\nYou are GRANNY! Your job is to catch the players.`);
     
-    // Host joins as observer or first player
-    const hostName = prompt('Enter your name (or leave blank to observe):');
-    if (hostName && hostName.trim()) {
-        joinAsPlayer(hostName.trim());
-    } else {
-        showGameScreen();
-        updateGameDisplay();
-        startSoundTimer();
-    }
+    // Host becomes Granny (observer role)
+    showGameScreen();
+    updateGameDisplay();
+    startSoundTimer();
 }
 
 // Join Game Functions
@@ -252,6 +252,9 @@ function joinAsPlayer(playerName) {
     }
 
     localStorage.setItem(PLAYER_KEY, JSON.stringify(currentPlayer));
+    
+    console.log('Player joined:', currentPlayer);
+    
     showGameScreen();
     updateGameDisplay();
     startSoundTimer();
@@ -323,10 +326,16 @@ function playerCaught() {
 
 // Display Functions
 function updateGameDisplay() {
-    console.log('updateGameDisplay called', {gameState, currentPlayer});
+    console.log('updateGameDisplay called', {gameState, currentPlayer, isGranny: isGranny()});
     
     if (!gameState) {
         console.error('No game state found');
+        return;
+    }
+    
+    // Check if this is Granny
+    if (isGranny()) {
+        updateGrannyView();
         return;
     }
     
@@ -396,6 +405,36 @@ function updateGameDisplay() {
     updateLeaderboardOnly();
 
     // Check game over conditions
+    updateGameOverStatus();
+}
+
+function updateGrannyView() {
+    // Update Granny-specific view
+    const playerNameDisplay = document.getElementById('player-name-display');
+    if (playerNameDisplay) {
+        playerNameDisplay.textContent = '👻 GRANNY 👻';
+    }
+    
+    const livesDisplay = document.getElementById('lives-display');
+    if (livesDisplay) {
+        livesDisplay.innerHTML = 'Hunt the players!';
+    }
+    
+    // Hide player-specific sections
+    const progressSection = document.querySelector('.progress-section');
+    if (progressSection) progressSection.style.display = 'none';
+    
+    const cluesSection = document.querySelector('.clues-section');
+    if (cluesSection) cluesSection.style.display = 'none';
+    
+    const codeEntrySection = document.querySelector('.code-entry-section');
+    if (codeEntrySection) codeEntrySection.style.display = 'none';
+    
+    const actionSection = document.querySelector('.action-section');
+    if (actionSection) actionSection.style.display = 'none';
+    
+    // Show leaderboard
+    updateLeaderboardOnly();
     updateGameOverStatus();
 }
 
@@ -489,6 +528,12 @@ function updatePlayerInGameState() {
     if (index !== -1) {
         gameState.players[index] = currentPlayer;
     }
+}
+
+function isGranny() {
+    const isHost = localStorage.getItem('grannyIsHost') === 'true';
+    const hostId = localStorage.getItem('grannyHostId');
+    return isHost && gameState && hostId === gameState.hostId;
 }
 
 // Storage Functions
@@ -590,14 +635,27 @@ function playCreepySound() {
     
     const gainNode = audioContext.createGain();
     
-    // Creepy frequencies (minor second interval)
-    oscillator1.frequency.value = 220; // A3
-    oscillator2.frequency.value = 233; // A#3 (dissonant)
-    oscillator3.frequency.value = 110; // A2 (bass)
+    // Randomize between different creepy sound patterns
+    const soundPatterns = [
+        { freq1: 220, freq2: 233, freq3: 110 },  // Original minor second
+        { freq1: 174, freq2: 185, freq3: 87 },   // Lower F# to G dissonance
+        { freq1: 261, freq2: 277, freq3: 130 },  // C to C# dissonance
+        { freq1: 196, freq2: 207, freq3: 98 },   // G to G# dissonance
+        { freq1: 146, freq2: 155, freq3: 73 },   // D to D# dissonance (deep)
+    ];
     
-    oscillator1.type = 'sine';
-    oscillator2.type = 'sine';
-    oscillator3.type = 'triangle';
+    const randomPattern = soundPatterns[Math.floor(Math.random() * soundPatterns.length)];
+    
+    // Creepy frequencies (minor second interval variations)
+    oscillator1.frequency.value = randomPattern.freq1;
+    oscillator2.frequency.value = randomPattern.freq2;
+    oscillator3.frequency.value = randomPattern.freq3;
+    
+    // Randomize waveform types
+    const waveTypes = ['sine', 'triangle', 'sawtooth'];
+    oscillator1.type = waveTypes[Math.floor(Math.random() * waveTypes.length)];
+    oscillator2.type = 'sine'; // Keep one sine for consistency
+    oscillator3.type = waveTypes[Math.floor(Math.random() * 2)]; // sine or triangle for bass
     
     oscillator1.connect(gainNode);
     oscillator2.connect(gainNode);
@@ -607,19 +665,22 @@ function playCreepySound() {
     // Set volume
     gainNode.gain.value = volume * 0.3; // Scale down to avoid being too loud
     
+    // Randomize duration slightly (2-3.5 seconds)
+    const duration = 2 + Math.random() * 1.5;
+    
     // Fade in and out
     gainNode.gain.setValueAtTime(0, audioContext.currentTime);
     gainNode.gain.linearRampToValueAtTime(volume * 0.3, audioContext.currentTime + 0.5);
-    gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 2.5);
+    gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + duration);
     
     // Play sound
     oscillator1.start(audioContext.currentTime);
     oscillator2.start(audioContext.currentTime);
     oscillator3.start(audioContext.currentTime);
     
-    oscillator1.stop(audioContext.currentTime + 3);
-    oscillator2.stop(audioContext.currentTime + 3);
-    oscillator3.stop(audioContext.currentTime + 3);
+    oscillator1.stop(audioContext.currentTime + duration + 0.5);
+    oscillator2.stop(audioContext.currentTime + duration + 0.5);
+    oscillator3.stop(audioContext.currentTime + duration + 0.5);
     
     // Visual feedback
     const countdownElement = document.getElementById('countdown');
@@ -632,6 +693,8 @@ function playCreepySound() {
             countdownElement.style.color = '';
         }, 3000);
     }
+    
+    console.log('Playing creepy sound:', randomPattern);
 }
 
 // Allow enter key to submit code
@@ -643,5 +706,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 submitCode();
             }
         });
+    }
+});
+
+// Prevent accidental exit from game
+window.addEventListener('beforeunload', (e) => {
+    // Only warn if game is active
+    if (gameState && gameState.started && document.getElementById('game-screen').classList.contains('active')) {
+        e.preventDefault();
+        e.returnValue = ''; // Required for Chrome
+        return ''; // Required for some browsers
     }
 });
