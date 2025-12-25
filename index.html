@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Granny Escape Game</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Welcome Screen -->
+    <div id="welcome-screen" class="screen active">
+        <div class="container">
+            <h1>🏚️ Granny Escape</h1>
+            <p class="subtitle">Real-life horror escape game</p>
+            <button onclick="showHostSetup()" class="btn btn-primary">Host Game</button>
+            <button onclick="showJoinGame()" class="btn btn-secondary">Join Game</button>
+        </div>
+    </div>
+
+    <!-- Host Setup Screen -->
+    <div id="host-setup-screen" class="screen">
+        <div class="container">
+            <h2>Host Game Setup</h2>
+            
+            <div class="form-group">
+                <label>Number of Levels</label>
+                <input type="number" id="num-levels" min="1" max="10" value="5">
+            </div>
+
+            <div class="form-group">
+                <label>Lives Per Player</label>
+                <input type="number" id="num-lives" min="1" max="10" value="3">
+            </div>
+
+            <div class="form-group">
+                <label>Sound Interval - Minimum: <span id="interval-min-value">10</span> seconds</label>
+                <input type="range" id="sound-interval-min" min="5" max="60" value="10" step="1" oninput="updateIntervalMinDisplay()">
+            </div>
+
+            <div class="form-group">
+                <label>Sound Interval - Maximum: <span id="interval-max-value">30</span> seconds</label>
+                <input type="range" id="sound-interval-max" min="5" max="60" value="30" step="1" oninput="updateIntervalMaxDisplay()">
+            </div>
+
+            <div class="form-group">
+                <label>Sound Volume: <span id="volume-value">50</span>%</label>
+                <input type="range" id="sound-volume" min="0" max="100" value="50" step="5" oninput="updateVolumeDisplay()">
+                <button onclick="testSound()" class="btn btn-secondary" style="margin-top: 10px;">🔊 Test Sound</button>
+            </div>
+
+            <div id="levels-config">
+                <!-- Level configuration will be dynamically generated -->
+            </div>
+
+            <button onclick="generateLevelInputs()" class="btn btn-secondary">Configure Levels</button>
+            <button onclick="startGame()" class="btn btn-primary" id="start-game-btn" style="display:none;">Start Game</button>
+            <button onclick="showWelcome()" class="btn btn-link">Back</button>
+        </div>
+    </div>
+
+    <!-- Join Game Screen -->
+    <div id="join-screen" class="screen">
+        <div class="container">
+            <h2>Join Game</h2>
+            
+            <div class="form-group">
+                <label>Game Code</label>
+                <input type="text" id="game-code-input" placeholder="Enter 6-digit code" maxlength="6">
+            </div>
+
+            <div class="form-group">
+                <label>Your Name</label>
+                <input type="text" id="player-name-input" placeholder="Enter your name">
+            </div>
+
+            <button onclick="joinGame()" class="btn btn-primary">Join Game</button>
+            <button onclick="showWelcome()" class="btn btn-link">Back</button>
+            <div id="join-error" class="error-message"></div>
+        </div>
+    </div>
+
+    <!-- Game Dashboard -->
+    <div id="game-screen" class="screen">
+        <div class="container">
+            <div class="game-header">
+                <h2 id="player-name-display"></h2>
+                <div id="lives-display" class="lives"></div>
+                <div id="sound-timer" class="sound-timer">Next sound in: <span id="countdown">--</span>s</div>
+            </div>
+
+            <div class="progress-section">
+                <h3>Your Progress</h3>
+                <div id="player-progress" class="progress-bar"></div>
+            </div>
+
+            <div class="clues-section">
+                <h3>Clues (Incomplete Levels)</h3>
+                <div id="clues-list"></div>
+            </div>
+
+            <div class="code-entry-section">
+                <h3>Enter Code</h3>
+                <input type="number" id="code-input" placeholder="4-digit code" maxlength="4" pattern="[0-9]{4}">
+                <button onclick="submitCode()" class="btn btn-primary">Submit Code</button>
+                <div id="code-feedback" class="feedback-message"></div>
+            </div>
+
+            <div class="action-section">
+                <button onclick="playerCaught()" class="btn btn-danger btn-large">I'VE BEEN CAUGHT</button>
+            </div>
+
+            <div class="leaderboard-section">
+                <h3>Leaderboard</h3>
+                <div id="leaderboard"></div>
+            </div>
+
+            <div id="game-over-message" class="game-over"></div>
+        </div>
+    </div>
+
+    <audio id="game-audio" preload="auto"></audio>
+    <script src="game.js"></script>
+</body>
+</html>
