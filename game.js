@@ -152,13 +152,16 @@ function generateLevelInputs() {
     container.innerHTML = '';
 
     for (let i = 1; i <= numLevels; i++) {
+        // Generate random 4-digit code
+        const randomCode = Math.floor(1000 + Math.random() * 9000);
+        
         const levelDiv = document.createElement('div');
         levelDiv.className = 'level-config-item';
         levelDiv.innerHTML = `
             <h4>Level ${i}</h4>
             <div class="form-group">
-                <label>4-Digit Code</label>
-                <input type="number" id="code-${i}" placeholder="e.g., 1234" min="0" max="9999" required>
+                <label>4-Digit Code (auto-generated)</label>
+                <input type="number" id="code-${i}" value="${randomCode}" readonly style="background: rgba(100, 100, 100, 0.4);">
             </div>
             <div class="form-group">
                 <label>Clue</label>
@@ -330,11 +333,12 @@ function submitCode() {
         return;
     }
 
-    const paddedCode = codeInput.padStart(4, '0');
+    // Normalize the input (remove any non-digits)
+    const normalizedInput = codeInput.replace(/\D/g, '').padStart(4, '0');
 
     // Check if code matches any incomplete level
     const matchingLevel = gameState.levels.find(level => 
-        level.code === paddedCode && !currentPlayer.completedLevels.includes(level.id)
+        level.code === normalizedInput && !currentPlayer.completedLevels.includes(level.id)
     );
 
     if (matchingLevel) {
@@ -470,16 +474,23 @@ function updateGameDisplay() {
 }
 
 function updateGrannyView() {
+    console.log('Updating Granny view, players:', gameState?.players);
+    
     // Update Granny-specific view
     const playerNameDisplay = document.getElementById('player-name-display');
     if (playerNameDisplay) {
-        playerNameDisplay.textContent = '👻 GRANNY 👻';
+        const playerCount = gameState?.players?.length || 0;
+        playerNameDisplay.textContent = `👻 GRANNY 👻 (${playerCount} players)`;
     }
     
     const livesDisplay = document.getElementById('lives-display');
     if (livesDisplay) {
         livesDisplay.innerHTML = 'Hunt the players!';
     }
+    
+    // Show refresh button for Granny
+    const refreshBtn = document.getElementById('granny-refresh-btn');
+    if (refreshBtn) refreshBtn.style.display = 'block';
     
     // Hide player-specific sections
     const progressSection = document.querySelector('.progress-section');
@@ -497,6 +508,25 @@ function updateGrannyView() {
     // Show leaderboard
     updateLeaderboardOnly();
     updateGameOverStatus();
+}
+
+function forceRefresh() {
+    console.log('Force refreshing game state');
+    loadGameState();
+    updateGameDisplay();
+    
+    // Show feedback
+    const refreshBtn = document.getElementById('granny-refresh-btn');
+    if (refreshBtn) {
+        const originalText = refreshBtn.textContent;
+        refreshBtn.textContent = '✅ Refreshed!';
+        refreshBtn.disabled = true;
+        
+        setTimeout(() => {
+            refreshBtn.textContent = originalText;
+            refreshBtn.disabled = false;
+        }, 1500);
+    }
 }
 
 function updateLeaderboardOnly() {
@@ -621,16 +651,21 @@ function loadGameState() {
 // Polling for updates (simulates real-time sync)
 function startPolling() {
     setInterval(() => {
-        const oldState = gameState;
+        const oldState = JSON.stringify(gameState);
+        
+        // Reload game state from localStorage
         loadGameState();
+        
+        const newState = JSON.stringify(gameState);
         
         // Only update display if we're on the game screen and state changed
         if (document.getElementById('game-screen').classList.contains('active')) {
-            if (JSON.stringify(oldState) !== JSON.stringify(gameState)) {
+            if (oldState !== newState) {
+                console.log('Game state changed, updating display');
                 updateGameDisplay();
             }
         }
-    }, 1000); // Poll every second
+    }, 2000); // Poll every 2 seconds
 }
 
 // Sound timer functions

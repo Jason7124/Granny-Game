@@ -14,7 +14,7 @@
             <p class="subtitle">Real-life horror escape game</p>
             <button onclick="showHostSetup()" class="btn btn-primary">Host Game</button>
             <button onclick="showJoinGame()" class="btn btn-secondary">Join Game</button>
-            <div style="text-align: center; margin-top: 30px; color: #888; font-size: 0.9rem;">v2.2.0</div>
+            <div style="text-align: center; margin-top: 30px; color: #888; font-size: 0.9rem;">v2.3.0</div>
         </div>
     </div>
 
@@ -82,6 +82,7 @@
                 <h2 id="player-name-display"></h2>
                 <div id="lives-display" class="lives"></div>
                 <div id="sound-timer" class="sound-timer">Next sound in: <span id="countdown">--</span>s</div>
+                <button onclick="forceRefresh()" class="btn btn-secondary" id="granny-refresh-btn" style="display: none; margin-top: 10px;">🔄 Refresh Player List</button>
             </div>
 
             <div class="progress-section">
