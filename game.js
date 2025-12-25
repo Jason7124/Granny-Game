@@ -323,56 +323,73 @@ function playerCaught() {
 
 // Display Functions
 function updateGameDisplay() {
+    console.log('updateGameDisplay called', {gameState, currentPlayer});
+    
+    if (!gameState) {
+        console.error('No game state found');
+        return;
+    }
+    
     if (!currentPlayer) {
+        console.log('No current player, updating leaderboard only');
         updateLeaderboardOnly();
         return;
     }
 
     // Update player name
-    document.getElementById('player-name-display').textContent = currentPlayer.name;
+    const playerNameDisplay = document.getElementById('player-name-display');
+    if (playerNameDisplay) {
+        playerNameDisplay.textContent = currentPlayer.name;
+    }
 
     // Update lives
     const livesDisplay = document.getElementById('lives-display');
-    let livesHTML = '';
-    for (let i = 0; i < gameState.numLives; i++) {
-        if (i < currentPlayer.lives) {
-            livesHTML += '❤️';
-        } else {
-            livesHTML += '🖤';
+    if (livesDisplay) {
+        let livesHTML = '';
+        for (let i = 0; i < gameState.numLives; i++) {
+            if (i < currentPlayer.lives) {
+                livesHTML += '❤️';
+            } else {
+                livesHTML += '🖤';
+            }
         }
+        livesDisplay.innerHTML = livesHTML;
     }
-    livesDisplay.innerHTML = livesHTML;
 
     // Update progress
     const progressBar = document.getElementById('player-progress');
-    let progressHTML = '';
-    for (let i = 1; i <= gameState.numLevels; i++) {
-        const completed = currentPlayer.completedLevels.includes(i);
-        progressHTML += `<div class="progress-item ${completed ? 'completed' : ''}">
-            ${completed ? '✅' : i}
-        </div>`;
+    if (progressBar) {
+        let progressHTML = '';
+        for (let i = 1; i <= gameState.numLevels; i++) {
+            const completed = currentPlayer.completedLevels.includes(i);
+            progressHTML += `<div class="progress-item ${completed ? 'completed' : ''}">
+                ${completed ? '✅' : i}
+            </div>`;
+        }
+        progressBar.innerHTML = progressHTML;
     }
-    progressBar.innerHTML = progressHTML;
 
     // Update clues (only incomplete levels)
     const cluesList = document.getElementById('clues-list');
-    const incompleteLevels = gameState.levels.filter(level => 
-        !currentPlayer.completedLevels.includes(level.id)
-    );
+    if (cluesList) {
+        const incompleteLevels = gameState.levels.filter(level => 
+            !currentPlayer.completedLevels.includes(level.id)
+        );
 
-    if (incompleteLevels.length === 0) {
-        cluesList.innerHTML = '<div class="empty-state">All levels completed! 🎉</div>';
-    } else {
-        let cluesHTML = '';
-        incompleteLevels.forEach(level => {
-            cluesHTML += `
-                <div class="clue-item">
-                    <div class="clue-label">Level ${level.id}</div>
-                    <div class="clue-text">${level.clue}</div>
-                </div>
-            `;
-        });
-        cluesList.innerHTML = cluesHTML;
+        if (incompleteLevels.length === 0) {
+            cluesList.innerHTML = '<div class="empty-state">All levels completed! 🎉</div>';
+        } else {
+            let cluesHTML = '';
+            incompleteLevels.forEach(level => {
+                cluesHTML += `
+                    <div class="clue-item">
+                        <div class="clue-label">Level ${level.id}</div>
+                        <div class="clue-text">${level.clue}</div>
+                    </div>
+                `;
+            });
+            cluesList.innerHTML = cluesHTML;
+        }
     }
 
     // Update leaderboard
@@ -384,6 +401,13 @@ function updateGameDisplay() {
 
 function updateLeaderboardOnly() {
     const leaderboard = document.getElementById('leaderboard');
+    
+    console.log('updateLeaderboardOnly called', {gameState, playersCount: gameState?.players?.length});
+    
+    if (!leaderboard) {
+        console.error('Leaderboard element not found');
+        return;
+    }
     
     if (!gameState || gameState.players.length === 0) {
         leaderboard.innerHTML = '<div class="empty-state">No players yet</div>';
@@ -426,6 +450,7 @@ function updateLeaderboardOnly() {
         `;
     });
 
+    console.log('Setting leaderboard HTML', leaderboardHTML.substring(0, 100));
     leaderboard.innerHTML = leaderboardHTML;
 }
 
@@ -551,7 +576,7 @@ function updateCountdown() {
 }
 
 function playCreepySound() {
-    if (!gameState || !gameState.soundSettings || !audioElement) return;
+    if (!gameState || !gameState.soundSettings) return;
     
     const volume = gameState.soundSettings.volume / 100;
     
