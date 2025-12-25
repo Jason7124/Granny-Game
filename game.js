@@ -15,7 +15,28 @@ const PLAYER_KEY = 'grannyCurrentPlayer';
 
 // Initialize
 window.addEventListener('load', () => {
-    loadGameState();
+    // Check if game state is in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const encodedGame = urlParams.get('game');
+    
+    if (encodedGame) {
+        try {
+            const decodedState = JSON.parse(atob(encodedGame));
+            gameState = decodedState;
+            saveGameState();
+            console.log('Game loaded from URL:', gameState);
+            
+            // Auto-show join screen for players
+            if (!localStorage.getItem('grannyIsHost')) {
+                showJoinGame();
+            }
+        } catch (e) {
+            console.error('Failed to load game from URL:', e);
+        }
+    } else {
+        loadGameState();
+    }
+    
     startPolling();
     audioElement = document.getElementById('game-audio');
 });
@@ -203,8 +224,21 @@ function startGame() {
     // Mark this device as Granny
     localStorage.setItem('grannyIsHost', 'true');
     localStorage.setItem('grannyHostId', gameState.hostId);
+    
+    // Encode game state into URL for sharing
+    const encodedState = btoa(JSON.stringify(gameState));
+    const shareUrl = window.location.origin + window.location.pathname + '?game=' + encodedState;
 
-    alert(`Game created! Share this code with players: ${gameCode}\n\nYou are GRANNY! Your job is to catch the players.`);
+    // Copy to clipboard if possible
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(shareUrl).then(() => {
+            alert(`Game created!\n\nShare this link with players:\n${shareUrl}\n\n(Link copied to clipboard!)\n\nYou are GRANNY! Your job is to catch the players.`);
+        }).catch(() => {
+            alert(`Game created!\n\nShare this link with players:\n${shareUrl}\n\nYou are GRANNY! Your job is to catch the players.`);
+        });
+    } else {
+        alert(`Game created!\n\nShare this link with players:\n${shareUrl}\n\nYou are GRANNY! Your job is to catch the players.`);
+    }
     
     // Host becomes Granny (observer role)
     showGameScreen();
@@ -213,8 +247,24 @@ function startGame() {
 }
 
 // Join Game Functions
+function joinGameFromUrl() {
+    const playerName = document.getElementById('player-name-input').value.trim();
+
+    if (!playerName) {
+        showError('join-error', 'Please enter your name');
+        return;
+    }
+    
+    if (!gameState) {
+        showError('join-error', 'No game found in URL. Ask the host for the game link.');
+        return;
+    }
+
+    joinAsPlayer(playerName);
+}
+
 function joinGame() {
-    const gameCode = document.getElementById('game-code-input').value.toUpperCase().trim();
+    const gameCode = document.getElementById('game-code-input')?.value.toUpperCase().trim();
     const playerName = document.getElementById('player-name-input').value.trim();
 
     if (!gameCode || !playerName) {
@@ -223,9 +273,20 @@ function joinGame() {
     }
 
     loadGameState();
+    
+    console.log('Attempting to join game:', {
+        enteredCode: gameCode,
+        storedGameCode: gameState?.gameCode,
+        hasGameState: !!gameState
+    });
 
-    if (!gameState || gameState.gameCode !== gameCode) {
-        showError('join-error', 'Invalid game code');
+    if (!gameState) {
+        showError('join-error', 'No game found. Make sure you opened the same link as the host or try refreshing the page.');
+        return;
+    }
+    
+    if (gameState.gameCode !== gameCode) {
+        showError('join-error', `Invalid game code. Host's code is: ${gameState.gameCode}`);
         return;
     }
 
